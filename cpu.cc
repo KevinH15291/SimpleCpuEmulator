@@ -11,7 +11,8 @@ void cpu::Fetch() {
     #ifdef _DEBUG
     std::cerr << "fetch" << std::endl;
     #endif
-    fr.inst = icache[pc];
+    fr.inst = icache[pc/4];
+    pc+=4;
 }
 
 void cpu::Decode() {
@@ -62,6 +63,7 @@ void cpu::Decode() {
         dr.rs1 = get_rs1(fr.inst);
         break;
     case U:
+    case UP:
         dr.imm = u_imm(fr.inst);
         dr.rd = get_rd(fr.inst);
         break;
@@ -86,30 +88,32 @@ void cpu::Execute() {
                     if (dr.f7 == ADD) {
                         registers[dr.rd] = registers[dr.rs1] + registers[dr.rs2]; 
                     }
-                    else if (dr.f7 = SUB) {
+                    else if (dr.f7 == SUB) {
                         registers[dr.rd] = registers[dr.rs1] - registers[dr.rs2]; 
                     }
                     else throw std::runtime_error("ADD_SUB fail");
                     break;
                 case XOR:
-                    // Process XOR instruction here
+                    registers[dr.rd] = registers[dr.rs1] ^ registers[dr.rs2]; 
                     break;
                 case OR:
-                    // Process OR instruction here
+                    registers[dr.rd] = registers[dr.rs1] | registers[dr.rs2]; 
                     break;
                 case AND:
-                    // Process AND instruction here
+                    registers[dr.rd] = registers[dr.rs1] & registers[dr.rs2]; 
                     break;
                 case SLL:
-                    // Process SLL instruction here
+                    registers[dr.rd] = registers[dr.rs1] << registers[dr.rs2]; 
                     break;
                 case SRL_SRA:
+                    // have to do sign extension, will do later
+                    registers[dr.rd] = registers[dr.rs1] >> registers[dr.rs2]; 
                     break;
                 case SLT:
-                    // Process SLT instruction here
+                    registers[dr.rd] = ((int32_t)registers[dr.rs1] < (int32_t)registers[dr.rs2]); 
                     break;
                 case SLTU:
-                    // Process SLTU instruction here
+                    registers[dr.rd] = (registers[dr.rs1] < registers[dr.rs2]); 
                     break;
                 default:
                     throw std::runtime_error("Invalid R-type funct3");
@@ -121,26 +125,25 @@ void cpu::Execute() {
                     registers[dr.rd] = registers[dr.rs1] + dr.imm; 
                     break;
                 case XORI:
-                    // Process XORI instruction here
+                    registers[dr.rd] = registers[dr.rs1] ^ dr.imm; 
                     break;
                 case ORI:
-                    // Process ORI instruction here
+                    registers[dr.rd] = registers[dr.rs1] | dr.imm; 
                     break;
                 case ANDI:
-                    // Process ANDI instruction here
+                    registers[dr.rd] = registers[dr.rs1] & dr.imm; 
                     break;
                 case SLLI:
-                    // Process SLLI instruction here
+                    registers[dr.rd] = registers[dr.rs1] << dr.imm; 
                     break;
                 case SRLI_SRAI:
-                    // Process SRLI instruction here
-                    // Process SRAI instruction here
+                    registers[dr.rd] = registers[dr.rs1] >> dr.imm; 
                     break;
                 case SLTI:
-                    // Process SLTI instruction here
+                    registers[dr.rd] = ((int32_t)registers[dr.rs1] < (int32_t)dr.imm); 
                     break;
                 case SLTIU:
-                    // Process SLTIU instruction here
+                    registers[dr.rd] = (registers[dr.rs1] < dr.imm); 
                     break;
                 default:
                     throw std::runtime_error("Invalid IA-type funct3");
@@ -149,19 +152,25 @@ void cpu::Execute() {
         case IL:
             switch (dr.f3) {
                 case LB:
-                    // Process LB instruction here
+                    registers[dr.rd] = (memory[dr.imm + registers[dr.rs1]] & 0xF);
                     break;
                 case LH:
-                    // Process LH instruction here
+                    registers[dr.rd] = (memory[dr.imm + registers[dr.rs1]] & 0xFFFF);
+
                     break;
                 case LW:
-                    // Process LW instruction here
+                    registers[dr.rd] = (memory[dr.imm + registers[dr.rs1]] & 0xFFFFFFFF);
+
                     break;
                 case LBU:
-                    // Process LBU instruction here
+                    registers[dr.rd] = (memory[dr.imm + registers[dr.rs1]] & 0xF);
+                    // have to do sign extension, will do later
+
                     break;
                 case LHU:
-                    // Process LHU instruction here
+                    registers[dr.rd] = (memory[dr.imm + registers[dr.rs1]] & 0xFFFF);
+                    // have to do sign extension, will do later
+
                     break;
                 default:
                     throw std::runtime_error("Invalid IL-type funct3");
@@ -170,64 +179,69 @@ void cpu::Execute() {
         case S:
             switch (dr.f3) {
                 case SB:
-                    // Process SB instruction here
+                    memory[dr.imm + dr.rd] = (registers[dr.rs1] & 0xF);
                     break;
                 case SH:
-                    // Process SH instruction here
+                    memory[dr.imm + dr.rd] = (registers[dr.rs1] & 0xFFFF);
                     break;
                 case SW:
-                    // Process SW instruction here
+                    memory[dr.imm + dr.rd] = (registers[dr.rs1] & 0xFFFFFFFF);
                     break;
                 default:
                     throw std::runtime_error("Invalid S-type funct3");
             }
             break;
         case B:
+        // THESE SHOULD SEND HELLA CONTROL SIGNALS LATER!!!!
             switch (dr.f3) {
                 case BEQ:
-                    // Process BEQ instruction here
+                    pc+=dr.imm*(registers[dr.rs1] == registers[dr.rs2]);
                     break;
                 case BNE:
-                    // Process BNE instruction here
+                    pc+=dr.imm*(registers[dr.rs1] != registers[dr.rs2]);
                     break;
                 case BLT:
-                    // Process BLT instruction here
+                    pc+=dr.imm*((int32_t)registers[dr.rs1] < (int32_t)registers[dr.rs2]);
                     break;
                 case BGE:
-                    // Process BGE instruction here
+                    pc+=dr.imm*((int32_t)registers[dr.rs1] >= (int32_t)registers[dr.rs2]);
                     break;
                 case BLTU:
-                    // Process BLTU instruction here
+                    pc+=dr.imm*(registers[dr.rs1] < registers[dr.rs2]);
                     break;
                 case BGEU:
-                    // Process BGEU instruction here
+                    pc+=dr.imm*(registers[dr.rs1] >= registers[dr.rs2]);
                     break;
                 default:
                     throw std::runtime_error("Invalid B-type funct3");
             }
             break;
         case J:
-            // Process J-type instruction here
+            registers[dr.rd] = pc+4;
+            pc+=dr.imm;
             break;
         case JR:
             switch (dr.f3) {
                 case JALR:
-                    // Process JALR instruction here
+                    registers[dr.rd] = pc+4;
+                    pc+=dr.imm+registers[dr.rs1];
                     break;
                 default:
                     throw std::runtime_error("Invalid JR-type funct3");
             }
             break;
         case U:
-            // Process U-type instruction here
+            registers[dr.rd] = (dr.imm << 12);
             break;
+        case UP:
+            registers[dr.rd] = (dr.imm << 12)+pc;
         case EI:
             switch (dr.imm) {
                 case 0:
-                    // not done
+                    // ECALL
                     break;
                 case 1:
-                    // not done
+                    // EBREAK (trap handler)
                     break;
                 default:
                     throw std::runtime_error("Invalid ECALL/EBREAK   function");
@@ -237,7 +251,6 @@ void cpu::Execute() {
             throw std::runtime_error("ISSUE WITH DECODE!!!!!");
     }
     registers[0] = 0;
-
 }
 
 void cpu::Mem() {
@@ -248,3 +261,10 @@ void cpu::WB() {
 
 }
 
+
+void cpu::Reg_dump() {
+    for (int i = 0; i < 32; ++i) {
+        std::cout << "reg " << i << ": " << registers[i] << " | ";
+        if (i%4 == 0) std::cout << '\n';
+    }
+}

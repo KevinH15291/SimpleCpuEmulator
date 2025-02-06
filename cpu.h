@@ -92,11 +92,12 @@ class cpu {
         void Execute();
         void Mem();
         void WB();
+        void Reg_dump();
         
     uint32_t registers[32];
     uint32_t pc = 0;
     uint32_t icache[512];
-    uint32_t dcache[512];
+    uint32_t dcache[512]; // this ain't happening for awhile
     uint32_t memory[4096];
 
     struct fetch_register {
@@ -126,6 +127,7 @@ class cpu {
     //     uint32_t error_flags = 0;
     // };
     // mem_register mem;
+    
 };
 
 int32_t get_opcode (inst i) {
