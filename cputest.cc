@@ -1,8 +1,21 @@
 #include <iostream>
 #include <bitset>
-#include "cpu.h" 
+#include "cpu.cc" 
 
 int main() {
-    std::cout << std::bitset<32>(b_imm(0xfe0288e3)) << '\n' << b_imm(0xfe0288e3) << '\n';
-    std::cout << std::bitset<32>(j_imm(0xfe0288e3)) << '\n' << j_imm(0x004000ef); 
+    cpu mycpu;
+    mycpu.icache[0] = 0x02028293;
+    mycpu.Fetch();
+    mycpu.Decode();
+    mycpu.Execute();
+    std::cout << mycpu.registers[5];
+    std::cout << mycpu.registers[7];
+
+    mycpu.icache[0] = 0x00528393;
+    mycpu.Fetch();
+    mycpu.Decode();
+    mycpu.Execute();
+
+    std::cout << mycpu.registers[5] << std::endl;
+    std::cout << mycpu.registers[7];
 }
